@@ -1,7 +1,7 @@
 import React, { useEffect, useState, ChangeEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { FiArrowLeft } from 'react-icons/fi';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import api from '../../services/api';
 import axios from 'axios';
 
@@ -27,9 +27,21 @@ const CreatePoint = () => {
     const [ufs, setUfs] = useState<string[]>([]);
     const [cities, setCities] = useState<string[]>([]);
     
+    const [initialPosition, setInitialPosition] = useState<[number, number]>([0, 0]);
+    
     const [selectedUf, setSelectedUf] = useState('0');
     const [selectedCity, setSelectedCity] = useState('0');
     const [selectedPosition, setSelectedPosition] = useState<[number, number]>([0, 0]);
+
+    
+    useEffect(() => {
+        navigator.geolocation.getCurrentPosition(position => {
+            const { latitude, longitude } = position.coords;
+
+            setInitialPosition([latitude, longitude]);
+            setSelectedPosition([latitude, longitude]);
+        })
+    }, []);    
 
     useEffect(() => {
         api.get('items').then(response => {
@@ -68,15 +80,12 @@ const CreatePoint = () => {
         setSelectedCity(city);
     }
 
-    // function handleMapClick(event: LeafletMouseEvent) {
-    //     setSelectedPosition([
-    //         event.latlng.lat,
-    //         event.latlng.lng
-    //     ])
-    //     console.log(event.latlng)
-    // }
-
     function HandleMapClick() {
+        const map = useMap();
+        if (map.getCenter().lat === 0){
+            map.setView(initialPosition);
+        }
+
         useMapEvents({
           click: (event) => {
             setSelectedPosition([
@@ -86,7 +95,7 @@ const CreatePoint = () => {
           }
         })
         return null
-      }
+    }
 
     return (
         <div id="page-create-point">
@@ -141,8 +150,8 @@ const CreatePoint = () => {
                         <h2>Endereço</h2>
                         <span>Selecione o endereço no mapa</span>
                     </legend>
-
-                    <MapContainer center={[-15.8430724,-48.0306507]} zoom={15}>
+                    
+                    <MapContainer center={initialPosition} zoom={15}>
                         <TileLayer
                             attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
                             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
